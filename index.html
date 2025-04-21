@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>لعبة تخمين الرمز</title>
+  <style>
+    body {
+      background-color: #111;
+      color: white;
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      padding: 30px;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+      font-size: 36px;
+      color: #3aaf5f;
+    }
+    .input-container {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .input-box {
+      width: 60px;
+      height: 60px;
+      background-color: #222;
+      border-radius: 8px;
+      font-size: 24px;
+      color: white;
+      border: 2px solid #333;
+      text-align: center;
+      transition: background-color 0.3s ease;
+    }
+    .input-box:focus {
+      border-color: #3aaf5f;
+      background-color: #444;
+    }
+    .result-box {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      transition: transform 0.2s ease;
+    }
+    .green { background-color: #3aaf5f; }
+    .yellow { background-color: #c9a038; }
+    .gray { background-color: #444; }
+    .red { background-color: #aa3333; }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: #444;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    #results {
+      margin-top: 30px;
+    }
+    .menu {
+      margin-bottom: 20px;
+    }
+    .error-animation {
+      animation: shake 0.5s ease-out;
+    }
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      50% { transform: translateX(10px); }
+      75% { transform: translateX(-10px); }
+      100% { transform: translateX(0); }
+    }
+    .win-animation {
+      animation: winEffect 1s ease-out;
+    }
+    @keyframes winEffect {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.5); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: #fff;
+      animation: confetti-fall 2s linear infinite;
+    }
+    @keyframes confetti-fall {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(500px); }
+    }
+  </style>
+</head>
+<body>
+  <h1>لعبة تخمين الرمز</h1>
+  <div class="menu">
+    <button onclick="setRandomCode()">كود عشوائي</button>
+    <button onclick="promptCode()">تعيين الكود</button>
+    <button onclick="resetGame()">إعادة</button>
+  </div>
+  <div class="input-container">
+    <input id="in0" maxlength="1" class="input-box" oninput="moveNext(0)">
+    <input id="in1" maxlength="1" class="input-box" oninput="moveNext(1)">
+    <input id="in2" maxlength="1" class="input-box" oninput="moveNext(2)">
+    <input id="in3" maxlength="1" class="input-box" oninput="moveNext(3)">
+  </div>
+  <button onclick="checkCode()">تحقق</button>
+
+  <div id="results"></div>
+
+  <audio id="errorSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+  <audio id="successSound" src="https://www.soundjay.com/button/success-01.wav"></audio>
+  <audio id="clickSound" src="https://www.soundjay.com/button/button-16.wav"></audio>
+  <audio id="winSound" src="https://www.soundjay.com/button/win-sound-01.wav"></audio>
+  
+  <script>
+    let secret = "1234";
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    function moveNext(index) {
+      const current = document.getElementById(`in${index}`);
+      if (current.value.length === 1 && index < 3) {
+        document.getElementById(`in${index + 1}`).focus();
+      }
+    }
+
+    function checkCode() {
+      if (attempts >= maxAttempts) return;
+
+      let guess = "";
+      for (let i = 0; i < 4; i++) {
+        const val = document.getElementById(`in${i}`).value;
+        if (!val.match(/^[0-9]$/)) return;
+        guess += val;
+      }
+
+      const resultRow = document.createElement("div");
+      resultRow.className = "input-container";
+
+      let feedback = Array(4).fill("gray");
+      let secretUsed = Array(4).fill(false);
+      let guessUsed = Array(4).fill(false);
+
+      for (let i = 0; i < 4; i++) {
+        if (guess[i] === secret[i]) {
+          feedback[i] = "green";
+          secretUsed[i] = true;
+          guessUsed[i] = true;
+        }
+      }
+
+      for (let i = 0; i < 4; i++) {
+        if (!guessUsed[i]) {
+          for (let j = 0; j < 4; j++) {
+            if (!secretUsed[j] && guess[i] === secret[j]) {
+              feedback[i] = "yellow";
+              secretUsed[j] = true;
+              break;
+            }
+          }
+        }
+      }
+
+      let allGray = true;
+      for (let i = 0; i < 4; i++) {
+        const box = document.createElement("div");
+        box.className = `result-box ${feedback[i]}`;
+        box.textContent = guess[i];
+        resultRow.appendChild(box);
+        if (feedback[i] !== "gray") allGray = false;
+      }
+
+      document.getElementById("results").appendChild(resultRow);
+
+      if (allGray) {
+        document.getElementById("errorSound").play();
+        resultRow.classList.add("error-animation");
+      } else {
+        document.getElementById("successSound").play();
+      }
+
+      attempts++;
+
+      if (feedback.every(color => color === "green")) {
+        document.getElementById("winSound").play();
+        document.getElementById("results").innerHTML = `<h2 class="win-animation">مبروك! فزت!</h2>`;
+        generateConfetti();
+      }
+
+      setTimeout(() => {
+        resultRow.remove();
+      }, 3000);
+
+      clearInputs();
+    }
+
+    function clearInputs() {
+      for (let i = 0; i < 4; i++) {
+        document.getElementById(`in${i}`).value = "";
+      }
+      document.getElementById("in0").focus();
+    }
+
+    function resetGame() {
+      attempts = 0;
+      document.getElementById("results").innerHTML = "";
+      clearInputs();
+      alert("تمت إعادة اللعبة!");
+    }
+
+    function setRandomCode() {
+      document.getElementById("clickSound").play();
+      secret = "";
+      for (let i = 0; i < 4; i++) {
+        secret += Math.floor(Math.random() * 10).toString();
+      }
+      alert("تم تعيين كود عشوائي!");
+      resetGame();
+    }
+
+    function promptCode() {
+      document.getElementById("clickSound").play();
+      const input = prompt("أدخل الكود (٤ أرقام):");
+      if (input && input.length === 4 && /^[0-9]+$/.test(input)) {
+        secret = input;
+        alert("تم تعيين الكود بنجاح!");
+        resetGame();
+      } else {
+        alert("الكود غير صالح!");
+      }
+    }
+
+    function generateConfetti() {
+      for (let i = 0; i < 100; i++) {
+        const confetti = document.createElement("div");
+        confetti.className = "confetti";
+        confetti.style.left = `${Math.random() * 100}vw`;
+        confetti.style.animationDuration = `${Math.random() * 2 + 3}s`;
+        document.body.appendChild(confetti);
+
+        setTimeout(() => {
+          confetti.remove();
+        }, 5000);
+      }
+    }
+  </script>
+</body>
+  </html>
